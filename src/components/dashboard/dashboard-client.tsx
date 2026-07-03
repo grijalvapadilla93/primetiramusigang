@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth, AuthProvider } from "@/lib/auth-context"
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { StreakPanel } from "@/components/dashboard/streak-panel"
@@ -324,11 +326,35 @@ function DashboardContent() {
   )
 }
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    if (mounted && !loading && !user) {
+      router.replace("/login")
+    }
+  }, [mounted, loading, user, router])
+
+  if (!mounted) return <>{children}</>
+
+  if (loading) return null
+  if (!user) return null
+  return <>{children}</>
+}
+
 export function DashboardClient() {
   return (
-    <DashboardProvider>
-      <DashboardContent />
-      <NewGoalModal />
-    </DashboardProvider>
+    <AuthProvider>
+      <DashboardProvider>
+        <AuthGuard>
+          <DashboardContent />
+          <NewGoalModal />
+        </AuthGuard>
+      </DashboardProvider>
+    </AuthProvider>
   )
 }

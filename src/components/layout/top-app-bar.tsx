@@ -1,7 +1,8 @@
 "use client"
 
-import { LayoutDashboard, Trophy, History, Flame, Bell } from "lucide-react"
+import { LayoutDashboard, Trophy, History, Flame, Bell, LogOut } from "lucide-react"
 import { useDashboard } from "@/lib/dashboard-context"
+import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -18,6 +19,7 @@ const navItems: NavItem[] = [
 
 export function TopAppBar() {
   const { activeSection, setActiveSection } = useDashboard()
+  const { user, logout } = useAuth()
 
   return (
     <header className="fixed top-0 left-0 w-full z-50 glass-deep">
@@ -60,8 +62,15 @@ export function TopAppBar() {
           <button className="w-9 h-9 rounded-xl glass-strong flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
             <Bell className="w-4 h-4" />
           </button>
+          <button
+            onClick={logout}
+            className="w-9 h-9 rounded-xl glass-strong flex items-center justify-center text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-sm border border-white/40 shadow-sm">
-            P
+            {user?.name?.charAt(0) || "?"}
           </div>
         </div>
       </div>
