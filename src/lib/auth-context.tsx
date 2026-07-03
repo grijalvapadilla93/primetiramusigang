@@ -1,18 +1,28 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import { createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
-// ── Supabase client ──────────────────────────────────────────
-// Add these two to your .env.local:
-//   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+// ── Supabase client (lazy) ───────────────────────────────────
+// Set in Vercel project settings → Environment Variables:
+//   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 //   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+let _supabase: SupabaseClient | null = null
 
-export { supabase }
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !key) {
+      // Return a dummy during SSR/prerender — real client is only needed client-side
+      return createClient("https://placeholder.supabase.co", "placeholder-key")
+    }
+    _supabase = createClient(url, key)
+  }
+  return _supabase
+}
+
+export { getSupabase }
 
 // ── Types ────────────────────────────────────────────────────
 export interface AppUser {
@@ -43,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch the profile row that matches the auth user
   const loadProfile = useCallback(async (authUserId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("profiles")
       .select("id, display_name, email, accent, color, weekly_goal, mascot_mood, total_points")
       .eq("id", authUserId)
@@ -69,7 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // On mount: check if there's already a session
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const sb = getSupabase()
+    sb.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         loadProfile(session.user.id).finally(() => setLoading(false))
       } else {
@@ -78,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     // Listen for login/logout events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         loadProfile(session.user.id)
       } else {
@@ -90,13 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfile])
 
   const login = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await getSupabase().auth.signInWithPassword({ email, password })
     if (error) return { error: error.message }
     return { error: null }
   }, [])
 
   const logout = useCallback(async () => {
-    await supabase.auth.signOut()
+    await getSupabase().auth.signOut()
     setUser(null)
   }, [])
 
