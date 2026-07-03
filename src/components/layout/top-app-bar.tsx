@@ -70,7 +70,7 @@ export function TopAppBar() {
             <LogOut className="w-4 h-4" />
           </button>
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary font-bold text-sm border border-white/40 shadow-sm">
-            {user?.name?.charAt(0) || "?"}
+            {user?.display_name?.charAt(0) || "?"}
           </div>
         </div>
       </div>

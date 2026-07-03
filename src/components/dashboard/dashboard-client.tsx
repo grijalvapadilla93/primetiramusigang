@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth, AuthProvider } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 import { DashboardProvider, useDashboard } from "@/lib/dashboard-context"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { StreakPanel } from "@/components/dashboard/streak-panel"
@@ -339,22 +339,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [mounted, loading, user, router])
 
-  if (!mounted) return <>{children}</>
-
-  if (loading) return null
+  if (!mounted || loading) return <>{children}</>
   if (!user) return null
   return <>{children}</>
 }
 
 export function DashboardClient() {
   return (
-    <AuthProvider>
-      <DashboardProvider>
-        <AuthGuard>
-          <DashboardContent />
-          <NewGoalModal />
-        </AuthGuard>
-      </DashboardProvider>
-    </AuthProvider>
+    <DashboardProvider>
+      <AuthGuard>
+        <DashboardContent />
+        <NewGoalModal />
+      </AuthGuard>
+    </DashboardProvider>
   )
 }

@@ -2,22 +2,32 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Mail, Lock, LogIn } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { Mail, Lock, LogIn, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
+  const { login } = useAuth()
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState(false)
+  const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     if (!email.trim() || !password.trim()) {
-      setError(true)
+      setError("Completa todos los campos")
       return
     }
-    localStorage.setItem("mp_user", JSON.stringify({ email, name: email.split("@")[0] }))
-    router.replace("/")
+    setSubmitting(true)
+    const result = await login(email, password)
+    setSubmitting(false)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      router.replace("/")
+    }
   }
 
   return (
@@ -41,7 +51,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setError(false) }}
+                onChange={(e) => { setEmail(e.target.value); setError("") }}
                 placeholder="pablo@ejemplo.com"
                 className="w-full h-11 pl-10 pr-3.5 rounded-xl glass-strong text-body-sm text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               />
@@ -55,7 +65,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(false) }}
+                onChange={(e) => { setPassword(e.target.value); setError("") }}
                 placeholder="••••••••"
                 className="w-full h-11 pl-10 pr-3.5 rounded-xl glass-strong text-body-sm text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               />
@@ -63,15 +73,16 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <p className="text-body-sm text-error text-center">Completa todos los campos</p>
+            <p className="text-body-sm text-error text-center">{error}</p>
           )}
 
           <button
             type="submit"
-            className="w-full h-11 rounded-xl bg-primary text-white text-body-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm cursor-pointer"
+            disabled={submitting}
+            className="w-full h-11 rounded-xl bg-primary text-white text-body-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm cursor-pointer disabled:opacity-40"
           >
-            <LogIn className="w-4 h-4" />
-            Iniciar sesión
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+            {submitting ? "Ingresando..." : "Iniciar sesión"}
           </button>
         </form>
 
