@@ -21,12 +21,17 @@ export default function LoginPage() {
       return
     }
     setSubmitting(true)
-    const result = await login(email, password)
-    setSubmitting(false)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      router.replace("/")
+    try {
+      const result = await login(email, password)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        router.replace("/")
+      }
+    } catch {
+      setError("Error de conexión — verifica que el proyecto Supabase tenga habilitado el email/password")
+    } finally {
+      setSubmitting(false)
     }
   }
 
