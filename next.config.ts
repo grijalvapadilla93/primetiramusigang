@@ -1,7 +1,18 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  reactStrictMode: true,
+  headers: async () => [
+    {
+      source: "/manifest.json",
+      headers: [
+        {
+          key: "Content-Type",
+          value: "application/manifest+json",
+        },
+      ],
+    },
+  ],
+}
 
-export default nextConfig;
+export default nextConfig
