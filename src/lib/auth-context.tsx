@@ -1,23 +1,14 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import { createClient, type SupabaseClient } from "@supabase/supabase-js"
+import { createClient } from "@/utils/supabase/client"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
-// ── Supabase client (lazy) ───────────────────────────────────
-// Set in Vercel project settings → Environment Variables:
-//   NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-//   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 let _supabase: SupabaseClient | null = null
 
 function getSupabase(): SupabaseClient {
   if (!_supabase) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!url || !key) {
-      // Return a dummy during SSR/prerender — real client is only needed client-side
-      return createClient("https://placeholder.supabase.co", "placeholder-key")
-    }
-    _supabase = createClient(url, key)
+    _supabase = createClient()
   }
   return _supabase
 }
@@ -43,15 +34,12 @@ interface AuthContextType {
   logout: () => Promise<void>
 }
 
-// ── Context ──────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | null>(null)
 
-// ── Provider ─────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Fetch the profile row that matches the auth user
   const loadProfile = useCallback(async (authUserId: string) => {
     const { data, error } = await getSupabase()
       .from("profiles")
@@ -77,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // On mount: check if there's already a session
   useEffect(() => {
     const sb = getSupabase()
     sb.auth.getSession().then(({ data: { session } }) => {
@@ -88,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    // Listen for login/logout events
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         loadProfile(session.user.id)
@@ -122,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
-// ── Hook ─────────────────────────────────────────────────────
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error("useAuth must be used within AuthProvider")
