@@ -1,21 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import { createClient } from "@/utils/supabase/client"
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 
-let _supabase: SupabaseClient | null = null
-
-function getSupabase(): SupabaseClient {
-  if (!_supabase) {
-    _supabase = createClient()
-  }
-  return _supabase
-}
-
-export { getSupabase }
-
-// ── Types ────────────────────────────────────────────────────
 export interface AppUser {
   id: string
   email: string
@@ -27,10 +13,39 @@ export interface AppUser {
   total_points: number
 }
 
+const USERS: Record<string, { password: string; profile: AppUser }> = {
+  pablo: {
+    password: "tequieromuchoamigopolis93?",
+    profile: {
+      id: "pablo-local",
+      email: "pablo@modoprime.app",
+      display_name: "Pablo",
+      accent: "pablo",
+      color: "#0A84FF",
+      weekly_goal: 6,
+      mascot_mood: "energized",
+      total_points: 420,
+    },
+  },
+  julio: {
+    password: "tequieromuchoamigopolis93?",
+    profile: {
+      id: "julio-local",
+      email: "julio@modoprime.app",
+      display_name: "Julio",
+      accent: "julio",
+      color: "#FF9F0A",
+      weekly_goal: 6,
+      mascot_mood: "energized",
+      total_points: 380,
+    },
+  },
+}
+
 interface AuthContextType {
   user: AppUser | null
   loading: boolean
-  login: (email: string, password: string) => Promise<{ error: string | null }>
+  login: (username: string, password: string) => Promise<{ error: string | null }>
   logout: () => Promise<void>
 }
 
@@ -38,66 +53,18 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading] = useState(false)
 
-  const loadProfile = useCallback(async (authUserId: string) => {
-    const { data, error } = await getSupabase()
-      .from("profiles")
-      .select("id, display_name, email, accent, color, weekly_goal, mascot_mood, total_points")
-      .eq("id", authUserId)
-      .single()
-
-    if (error || !data) {
-      console.error("Profile not found:", error)
-      setUser(null)
-      return
-    }
-
-    setUser({
-      id: data.id,
-      email: data.email,
-      display_name: data.display_name,
-      accent: data.accent as "pablo" | "julio",
-      color: data.color,
-      weekly_goal: data.weekly_goal,
-      mascot_mood: data.mascot_mood as AppUser["mascot_mood"],
-      total_points: data.total_points,
-    })
-  }, [])
-
-  useEffect(() => {
-    const sb = getSupabase()
-    sb.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    })
-
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        loadProfile(session.user.id)
-      } else {
-        setUser(null)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [loadProfile])
-
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      const { error } = await getSupabase().auth.signInWithPassword({ email, password })
-      if (error) return { error: error.message }
-      return { error: null }
-    } catch (e: unknown) {
-      return { error: e instanceof Error ? e.message : "Error de conexión al servidor" }
-    }
+  const login = useCallback(async (username: string, password: string) => {
+    const key = username.toLowerCase().trim()
+    const entry = USERS[key]
+    if (!entry) return { error: "Usuario no encontrado" }
+    if (entry.password !== password) return { error: "Contraseña incorrecta" }
+    setUser(entry.profile)
+    return { error: null }
   }, [])
 
   const logout = useCallback(async () => {
-    await getSupabase().auth.signOut()
     setUser(null)
   }, [])
 

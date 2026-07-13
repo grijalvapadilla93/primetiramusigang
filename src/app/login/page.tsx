@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { Mail, Lock, LogIn, Loader2 } from "lucide-react"
+import { User, Lock, LogIn, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export default function LoginPage() {
   const { login } = useAuth()
   const router = useRouter()
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -16,23 +17,23 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    if (!email.trim() || !password.trim()) {
+    if (!username.trim() || !password.trim()) {
       setError("Completa todos los campos")
       return
     }
     setSubmitting(true)
-    try {
-      const result = await login(email, password)
-      if (result.error) {
-        setError(result.error)
-      } else {
-        router.replace("/")
-      }
-    } catch {
-      setError("Error de conexión — verifica que el proyecto Supabase tenga habilitado el email/password")
-    } finally {
-      setSubmitting(false)
+    const result = await login(username, password)
+    setSubmitting(false)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      router.replace("/")
     }
+  }
+
+  const setUser = (name: string) => {
+    setUsername(name)
+    setError("")
   }
 
   return (
@@ -44,23 +45,29 @@ export default function LoginPage() {
           </div>
           <div>
             <h1 className="text-headline-lg font-bold text-on-background tracking-tight">Modo Prime</h1>
-            <p className="text-body-sm text-on-surface-variant mt-1">Inicia sesión para continuar</p>
+            <p className="text-body-sm text-on-surface-variant mt-1">Elige tu usuario</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-label-caps text-on-surface-variant uppercase tracking-wider">Correo electrónico</label>
-            <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setError("") }}
-                placeholder="pablo@ejemplo.com"
-                className="w-full h-11 pl-10 pr-3.5 rounded-xl glass-strong text-body-sm text-on-background placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              />
-            </div>
+          <div className="flex gap-2">
+            {(["pablo", "julio"] as const).map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setUser(name)}
+                className={cn(
+                  "flex-1 h-12 rounded-xl font-bold text-body-sm capitalize transition-all cursor-pointer",
+                  username === name
+                    ? name === "pablo"
+                      ? "bg-[#0A84FF] text-white shadow-sm"
+                      : "bg-[#FF9F0A] text-white shadow-sm"
+                    : "glass-strong text-on-surface-variant hover:text-on-background"
+                )}
+              >
+                {name}
+              </button>
+            ))}
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -83,7 +90,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !username}
             className="w-full h-11 rounded-xl bg-primary text-white text-body-sm font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm cursor-pointer disabled:opacity-40"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
@@ -92,7 +99,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-label-caps text-on-surface-variant text-center">
-          Demo: cualquier email y contraseña funcionan
+          Ambos usan la misma contraseña
         </p>
       </div>
     </div>
