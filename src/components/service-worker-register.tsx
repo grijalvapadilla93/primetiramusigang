@@ -5,7 +5,10 @@ import { useEffect } from "react"
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
+      // Unregister any stale service workers from previous deployments
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister())
+      })
     }
   }, [])
   return null
